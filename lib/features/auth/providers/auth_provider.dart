@@ -1,35 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import '../models/user_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/supabase_client.dart';
 
-final authProvider = StateNotifierProvider<AuthNotifier, UserModel?>((ref) {
-  return AuthNotifier();
+// Stream provider for auth state changes
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  return SupabaseConfig.client.auth.onAuthStateChange;
 });
 
-class AuthNotifier extends StateNotifier<UserModel?> {
-  AuthNotifier() : super(null);
+// Service provider for auth actions
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService();
+});
 
-  final _dio = Dio(BaseOptions(baseUrl: 'YOUR_BACKEND_URL'));
-
-  Future<void> login(String email, String password) async {
-    try {
-      final response = await _dio.post(
-        '/auth/login',
-        data: {'email': email, 'password': password},
-      );
-
-      if (response.statusCode == 200) {
-        // Save JWT to secure storage here (shared_preferences or flutter_secure_storage)
-        state = UserModel.fromJson(response.data['user']);
-      }
-    } catch (e) {
-      // Handle error (show snackbar or throw)
-      rethrow;
-    }
+class AuthService {
+  Future<AuthResponse> signIn(String email, String password) async {
+    return await SupabaseConfig.client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
   }
 
-  void logout() {
-    state = null;
-    // Clear tokens from storage
+  Future<void> signOut() async {
+    await SupabaseConfig.client.auth.signOut();
   }
 }
